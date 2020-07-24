@@ -1,7 +1,6 @@
-
-use super::menu::Menu;
 use super::game::Game;
 use super::gameover::GameOver;
+use super::menu::Menu;
 use super::window::Window;
 
 // State Container
@@ -13,7 +12,6 @@ pub trait Scene {
 // States
 
 impl Scene for Menu {
-
 	fn run(self) -> Window {
 		const VERSION: &str = env!("CARGO_PKG_VERSION");
 		leg::head("Tetris", Some("\u{1f579}\u{fe0f}"), Some(VERSION));
@@ -23,7 +21,6 @@ impl Scene for Menu {
 }
 
 impl Scene for Game {
-
 	fn run(mut self) -> Window {
 		leg::info("Game", "Scene".into(), None);
 		self.start();
@@ -32,7 +29,6 @@ impl Scene for Game {
 }
 
 impl Scene for GameOver {
-
 	fn run(self) -> Window {
 		leg::info("Game over", "Scene".into(), None);
 		Window::GameOver(self)

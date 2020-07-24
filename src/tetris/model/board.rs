@@ -1,46 +1,44 @@
-
-use na::{Vec2, MatrixMN, U22, U12, zero};
-use rand::{rngs, Rng, SeedableRng};
 use super::shape::{self, Shape};
+use na::{zero, MatrixMN, Vec2, U12, U22};
+use rand::prelude::*;
+use rand::Rng;
 
 // Struct: Piece
 
 #[derive(Clone, Copy)]
 pub struct Piece {
 	pub position: Vec2<usize>,
-	pub shape: Shape
+	pub shape: Shape,
 }
 
 impl Piece {
-	
 	pub fn new(x: usize, shape: Shape) -> Self {
-
 		const Y: usize = 2;
 
 		Self {
 			position: Vec2::new(x, Y),
-			shape
+			shape,
 		}
 	}
 
 	fn x(self, x: usize) -> Self {
 		Self {
 			position: Vec2::new(x, self.position.y),
-			shape: self.shape
+			shape: self.shape,
 		}
 	}
 
 	fn y(self, y: usize) -> Self {
 		Self {
 			position: Vec2::new(self.position.x, y),
-			shape: self.shape
+			shape: self.shape,
 		}
 	}
 
 	fn shape(self, shape: Shape) -> Self {
 		Self {
 			position: self.position,
-			shape
+			shape,
 		}
 	}
 }
@@ -51,14 +49,12 @@ impl Piece {
 pub struct PieceCollector {
 	current_shape: u8,
 	next_shape: u8,
-	rng: rngs::SmallRng,
+	rng: StdRng,
 }
 
 impl PieceCollector {
-
-	fn new(seed: [u8; 16]) -> Self {
-
-		let mut rng = rngs::SmallRng::from_seed(seed);
+	fn new(seed: u64) -> Self {
+		let mut rng = StdRng::seed_from_u64(seed);
 		let current_shape = rng.gen_range(1_u8, 8_u8);
 		let next_shape = rng.gen_range(1_u8, 8_u8);
 
@@ -89,14 +85,12 @@ impl PieceCollector {
 pub struct Board {
 	pub collector: PieceCollector,
 	pub grid: MatrixMN<u8, U22, U12>,
-	pub current: Piece
+	pub current: Piece,
 }
 
 impl Board {
-
 	/// Creates a new empty board with a random current piece
-	pub fn new(seed: [u8; 16]) -> Self {
-
+	pub fn new(seed: u64) -> Self {
 		// Initialize grid
 		let mut grid: MatrixMN<u8, U22, U12> = zero();
 		grid.fill_row(1, 8_u8);
@@ -110,7 +104,7 @@ impl Board {
 		// Set current piece
 		let current_piece = Piece {
 			position: [4, 2].into(),
-			shape: collector.get_current()
+			shape: collector.get_current(),
 		};
 
 		// Build state
@@ -123,7 +117,6 @@ impl Board {
 
 	/// Transfer current piece to grid
 	pub fn place_current_piece(&mut self) {
-
 		let offset_y: usize = self.current.position.y;
 		let offset_x: usize = self.current.position.x;
 		let x = self.current.shape.x();
@@ -133,7 +126,10 @@ impl Board {
 
 		let mut slice_grid = self.grid.slice_mut((offset_y + y, offset_x + x), (h, w));
 
-		for (x1, x2) in slice_grid.iter_mut().zip(self.current.shape.value().slice((y, x), (h, w)).iter()) {
+		for (x1, x2) in slice_grid
+			.iter_mut()
+			.zip(self.current.shape.value().slice((y, x), (h, w)).iter())
+		{
 			if *x2 != 0 {
 				*x1 = *x2;
 			}
@@ -142,13 +138,10 @@ impl Board {
 
 	/// Remove full lines and return the number of lines removed
 	pub fn remove_full_lines(&mut self) -> usize {
-
 		let mut count_lines = 0_usize;
 
 		for i in 2..self.grid.nrows() - 2 {
-
 			if self.grid.row(i).iter().filter(|x| **x == 0).count() == 2 {
-
 				// Log success
 				leg::success("Line completed", "\u{1f37b}".into(), None);
 
@@ -170,7 +163,6 @@ impl Board {
 
 	/// Moves the current piece to the x specified
 	pub fn move_current_to(&mut self, x: usize) {
-
 		let mut tries = 0;
 
 		while self.current.position.x < x && tries < 5 {
@@ -192,17 +184,12 @@ impl Board {
 	pub fn rotate_current(&mut self, degrees: shape::Rotation) {
 		match degrees {
 			shape::Rotation::Rotate0 => (),
-			shape::Rotation::Rotate90 => {
-				self.current.shape = self.current.shape
-					.rotate_clockwise()
-			},
-			shape::Rotation::Rotate180 => {
-				self.current.shape = self.current.shape
-					.rotate_clockwise()
-					.rotate_clockwise()
-			},
+			shape::Rotation::Rotate90 => self.current.shape = self.current.shape.rotate_clockwise(),
+			shape::Rotation::Rotate180 => self.current.shape = self.current.shape.rotate_clockwise().rotate_clockwise(),
 			shape::Rotation::Rotate270 => {
-				self.current.shape = self.current.shape
+				self.current.shape = self
+					.current
+					.shape
 					.rotate_clockwise()
 					.rotate_clockwise()
 					.rotate_clockwise()
@@ -219,12 +206,11 @@ impl Board {
 pub enum BoardError {
 	TouchingGround,
 	UnableToMove,
-	UnableToRotate
+	UnableToRotate,
 }
 
 /// Moves the piece one position down if possible
 pub fn down(board: &Board, piece: &Piece) -> Result<Piece, BoardError> {
-
 	if can_down(board, piece) {
 		Ok(piece.clone().y(piece.position.y + 1))
 	}
@@ -273,7 +259,6 @@ fn can_right(board: &Board, piece: &Piece) -> bool {
 }
 
 fn can_rotate(board: &Board, piece: &Piece) -> Result<Piece, BoardError> {
-
 	let mut new_piece = piece.clone().shape(piece.shape.rotate_clockwise());
 
 	let mut i = 0;
@@ -284,14 +269,18 @@ fn can_rotate(board: &Board, piece: &Piece) -> Result<Piece, BoardError> {
 		else if !overlapping(board, &new_piece, 1, 0) {
 			new_piece = new_piece.x(new_piece.position.x + 1);
 		}
-		else if (new_piece.shape == Shape::I(0) || new_piece.shape == Shape::I(2)) && !overlapping(board, &new_piece, -2, 0) {
+		else if (new_piece.shape == Shape::I(0) || new_piece.shape == Shape::I(2))
+			&& !overlapping(board, &new_piece, -2, 0)
+		{
 			new_piece = new_piece.x(new_piece.position.x - 2);
 		}
-		else if (new_piece.shape == Shape::I(0) || new_piece.shape == Shape::I(2)) && !overlapping(board, &new_piece, 2, 0) {
+		else if (new_piece.shape == Shape::I(0) || new_piece.shape == Shape::I(2))
+			&& !overlapping(board, &new_piece, 2, 0)
+		{
 			new_piece = new_piece.x(new_piece.position.x + 2);
 		}
 		else {
-			return Err(BoardError::UnableToRotate)
+			return Err(BoardError::UnableToRotate);
 		}
 		i += 1;
 	}
@@ -299,8 +288,7 @@ fn can_rotate(board: &Board, piece: &Piece) -> Result<Piece, BoardError> {
 	Ok(new_piece)
 }
 
-fn overlapping(board: &Board, piece: &Piece, offset_x: i64, offset_y: i64) -> bool {
-
+pub fn overlapping(board: &Board, piece: &Piece, offset_x: i64, offset_y: i64) -> bool {
 	let global_offset_y = piece.position.y;
 	let global_offset_x = piece.position.x;
 	let x = piece.shape.x();
@@ -308,17 +296,21 @@ fn overlapping(board: &Board, piece: &Piece, offset_x: i64, offset_y: i64) -> bo
 	let w = piece.shape.w();
 	let h = piece.shape.h();
 
-	if  (global_offset_y as i64 + y as i64 + offset_y) < 0 ||
-		(global_offset_x as i64 + x as i64 + offset_x) < 0 ||
-		(global_offset_y as i64 + y as i64 + offset_y) as usize >= board.grid.nrows() ||
-		(global_offset_x as i64 + x as i64 + offset_x) as usize >= board.grid.ncols() {
+	if (global_offset_y as i64 + y as i64 + offset_y) < 0
+		|| (global_offset_x as i64 + x as i64 + offset_x) < 0
+		|| (global_offset_y as i64 + y as i64 + offset_y) as usize >= board.grid.nrows()
+		|| (global_offset_x as i64 + x as i64 + offset_x) as usize >= board.grid.ncols()
+	{
 		return true;
 	}
 
-	let slice_grid = board.grid
-		.slice(((global_offset_y as i64 + y as i64 + offset_y) as usize,
-				(global_offset_x as i64 + x as i64 + offset_x) as usize),
-			   (h, w));
+	let slice_grid = board.grid.slice(
+		(
+			(global_offset_y as i64 + y as i64 + offset_y) as usize,
+			(global_offset_x as i64 + x as i64 + offset_x) as usize,
+		),
+		(h, w),
+	);
 
 	slice_grid
 		.iter()

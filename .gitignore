@@ -3,3 +3,4 @@
 .idea/
 tetris-rs\.iml
 tetris-diagram
+Cargo.lock
