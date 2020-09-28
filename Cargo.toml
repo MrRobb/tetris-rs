@@ -7,7 +7,7 @@ edition = "2018"
 
 [dependencies]
 ggez = "0.5.1"
-na = "0.18.3"
+na = "0.22.0"
 rand = "0.7.3"
 leg = "0.4.1"
 
