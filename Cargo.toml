@@ -8,7 +8,7 @@ edition = "2018"
 [dependencies]
 ggez = "0.5.1"
 na = "0.18.3"
-rand = "0.7.3"
+rand = "0.8.3"
 leg = "0.4.1"
 
 [package.metadata.bundle]
