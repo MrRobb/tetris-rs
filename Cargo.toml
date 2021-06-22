@@ -9,7 +9,7 @@ edition = "2018"
 ggez = "0.5.1"
 na = "0.18.3"
 rand = "0.7.3"
-leg = "0.4.1"
+leg = "1.0.1"
 
 [package.metadata.bundle]
 name = "Tetris"
